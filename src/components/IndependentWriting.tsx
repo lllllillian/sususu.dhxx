@@ -6,6 +6,7 @@ import StudentSelfAssessment from "./StudentSelfAssessment";
 import AIWritingFeedback from "./AIWritingFeedback";
 import StoryAnimationStudio from "./StoryAnimationStudio";
 import WordCounter, { countWords } from "./WordCounter";
+import { apiUrl } from "../lib/api";
 
 type StorySummary = { id: number; version: number; title: string; label: string; image: string; accent: string };
 
@@ -39,7 +40,7 @@ export default function IndependentWriting({ story, writingOpenings, onDraftChan
     if (!photo) return;
     setOcrLoading(true); setOcrError("");
     try {
-      const response = await fetch("/api/writing/ocr", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ image: photo }) });
+      const response = await fetch(apiUrl("/api/writing/ocr"), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ image: photo }) });
       const data = await response.json() as { text?: string; error?: string };
       if (!response.ok || !data.text) throw new Error(data.error || "识别失败，请稍后重试。");
       setRecognizedText(data.text);

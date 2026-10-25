@@ -1,7 +1,7 @@
 import http from "node:http";
 import { spawn } from "node:child_process";
 
-const port = Number(process.env.API_PORT || 3001);
+const port = Number(process.env.PORT || process.env.API_PORT || 3001);
 const baseUrl = (process.env.ARK_API_BASE_URL || "https://ark.cn-beijing.volces.com/api/v3").replace(/\/$/, "");
 const model = process.env.ARK_VIDEO_MODEL || "doubao-seedance-2-5-260628";
 const ocrModel = process.env.ARK_OCR_MODEL || "doubao-seed-1-6-vision-250815";
@@ -120,6 +120,7 @@ function localExpressionExtraction(content) {
 const server = http.createServer(async (request, response) => {
   try {
     if (request.method === "OPTIONS") return json(response, 204, {});
+    if (request.method === "GET" && request.url === "/health") return json(response, 200, { status: "ok", service: "storyforge-api" });
     if (request.method === "POST" && request.url === "/api/writing/ocr") {
       const body = await readBody(request);
       const image = String(body.image || "");

@@ -1,5 +1,6 @@
 import { ArrowRight, Check, LoaderCircle, RefreshCw, Sparkles } from "lucide-react";
 import { useState } from "react";
+import { apiUrl } from "../lib/api";
 
 export type LanguageReview = {
   summary_zh: string;
@@ -14,7 +15,7 @@ export default function GalleryAIReview({ content, savedReview, onReviewed }: { 
   const runReview = async () => {
     setLoading(true); setError("");
     try {
-      const response = await fetch("/api/writing/language-review", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content }) });
+      const response = await fetch(apiUrl("/api/writing/language-review"), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content }) });
       const data = await response.json() as LanguageReview & { error?: string };
       if (!response.ok) throw new Error(response.status === 404 ? "AI 检查服务尚未启动，请重新启动 StoryForge 后再试。" : data.error || "AI 检查失败，请稍后重试。");
       setReview(data);

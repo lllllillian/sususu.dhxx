@@ -1,5 +1,6 @@
 import { LoaderCircle, Play, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
+import { apiUrl } from "../lib/api";
 
 const POLL_INTERVAL = 4000;
 
@@ -14,7 +15,7 @@ export default function SeedanceVideoPanel({ defaultPrompt = "A cinematic storyb
     if (!taskId || !["queued", "running"].includes(status)) return;
     const timer = window.setInterval(async () => {
       try {
-        const response = await fetch(`/api/video/status/${encodeURIComponent(taskId)}`);
+        const response = await fetch(apiUrl(`/api/video/status/${encodeURIComponent(taskId)}`));
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || "查询视频状态失败。");
         setStatus(data.status || "running");
@@ -28,7 +29,7 @@ export default function SeedanceVideoPanel({ defaultPrompt = "A cinematic storyb
   const generate = async () => {
     setError(""); setVideoUrl(""); setStatus("submitting");
     try {
-      const response = await fetch("/api/video/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt }) });
+      const response = await fetch(apiUrl("/api/video/generate"), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt }) });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "创建视频任务失败。");
       setTaskId(data.task_id); setStatus("queued");

@@ -1,5 +1,6 @@
 import { Volume2, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { apiUrl } from "../lib/api";
 
 type DictionaryEntry = { word: string; phonetic?: string; phonetics?: { text?: string; audio?: string }[]; meanings?: { partOfSpeech: string; definitions: { definition: string; example?: string }[] }[] };
 
@@ -20,7 +21,7 @@ const globalLookup = () => {
     const value = node.textContent || ""; const offset = range?.startOffset ?? position?.offset ?? 0; const match = value.slice(0, offset).match(/[A-Za-z][A-Za-z'-]*$/); const tail = value.slice(offset).match(/^[A-Za-z][A-Za-z'-]*/); const word = `${match?.[0] || ""}${tail?.[0] || ""}`.replace(/[’']/g, "");
     if (word.length < 2) return;
     close(); popup = document.createElement("div"); popup.className = "word-lookup-popover word-lookup-global"; popup.textContent = "正在查词…"; document.body.appendChild(popup); popup.style.left = `${Math.min(point.clientX + 10, window.innerWidth - 330)}px`; popup.style.top = `${Math.min(point.clientY + 12, window.innerHeight - 220)}px`;
-    try { const response = await fetch(`/api/dictionary/${encodeURIComponent(word.toLowerCase())}`); if (!response.ok) throw new Error("暂时查不到这个词。"); const data = await response.json() as DictionaryEntry[]; const item = data[0]; popup.innerHTML = `<button class="word-lookup-global-close">×</button><div class="word-lookup-head"><strong>${item.word}</strong><small>${item.phonetic || item.phonetics?.find(value => value.text)?.text || ""}</small></div>${item.meanings?.slice(0, 2).map(meaning => `<div class="word-lookup-meaning"><b>${meaning.partOfSpeech}</b><p>${meaning.definitions[0]?.definition || ""}</p></div>`).join("") || ""}`; popup.querySelector("button")?.addEventListener("click", close); } catch (error) { if (popup) popup.innerHTML = `<button class="word-lookup-global-close">×</button><p class="word-lookup-error">${error instanceof Error ? error.message : "查词失败，请稍后再试。"}</p>`; popup.querySelector("button")?.addEventListener("click", close); }
+    try { const response = await fetch(apiUrl(`/api/dictionary/${encodeURIComponent(word.toLowerCase())}`)); if (!response.ok) throw new Error("暂时查不到这个词。"); const data = await response.json() as DictionaryEntry[]; const item = data[0]; popup.innerHTML = `<button class="word-lookup-global-close">×</button><div class="word-lookup-head"><strong>${item.word}</strong><small>${item.phonetic || item.phonetics?.find(value => value.text)?.text || ""}</small></div>${item.meanings?.slice(0, 2).map(meaning => `<div class="word-lookup-meaning"><b>${meaning.partOfSpeech}</b><p>${meaning.definitions[0]?.definition || ""}</p></div>`).join("") || ""}`; popup.querySelector("button")?.addEventListener("click", close); } catch (error) { if (popup) popup.innerHTML = `<button class="word-lookup-global-close">×</button><p class="word-lookup-error">${error instanceof Error ? error.message : "查词失败，请稍后再试。"}</p>`; popup.querySelector("button")?.addEventListener("click", close); }
   });
 };
 globalLookup();

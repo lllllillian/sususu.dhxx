@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: sususu-dhxx-api
+    runtime: node
+    plan: free
+    buildCommand: pnpm install --frozen-lockfile
+    startCommand: pnpm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: ARK_API_KEY
+        sync: false
+      - key: ARK_API_BASE_URL
+        value: https://ark.cn-beijing.volces.com/api/v3
+      - key: ARK_VIDEO_MODEL
+        value: doubao-seedance-2-5-260628
+      - key: ARK_OCR_MODEL
+        value: doubao-seed-1-6-vision-250815
+      - key: ARK_WRITING_MODEL
+        value: doubao-pro-32k-240615

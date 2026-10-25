@@ -4,6 +4,7 @@ import { corpusEntries } from "../data/corpusEntries";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import type { CorpusCategory, CorpusEntry } from "../types/corpus";
 import type { StudentDraft } from "../types/writing";
+import { apiUrl } from "../lib/api";
 
 const categories: ["all" | CorpusCategory, string][] = [["all", "All"], ["word", "Words · 单词"], ["phrase", "Phrases · 短语"], ["sentence", "Sentences · 句子"]];
 
@@ -33,7 +34,7 @@ export default function ExpressionBank({ onClose, draft }: { onClose: () => void
     if (!draft?.content.trim()) { setError("请先在“自主续写”中完成或导入作文，再使用 AI 提取。"); return; }
     setExtracting(true); setError(""); setMessage("");
     try {
-      const response = await fetch("/api/writing/extract-expressions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: draft.content }) });
+      const response = await fetch(apiUrl("/api/writing/extract-expressions"), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: draft.content }) });
       const data = await response.json() as { expressions?: ExtractedExpression[]; error?: string };
       if (!response.ok || !data.expressions) throw new Error(data.error || "表达提取失败，请稍后重试。");
       setExtracted(data.expressions); setSelectedExtracted(data.expressions.map((_,index)=>index));
