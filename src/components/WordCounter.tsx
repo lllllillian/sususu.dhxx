@@ -1,0 +1,2 @@
+export const countWords=(value:string)=>value.trim()?value.trim().split(/\s+/).length:0;
+export default function WordCounter({value}:{value:string}){const count=countWords(value);const state=count<120?"short":count<=180?"good":"long";return <div className={`word-counter ${state}`}><strong>{count}</strong><span>words</span><i>Target: about 150 words</i><em>{count<120?`${120-count} more needed`:count>180?"Consider making your story more concise.":count>=140&&count<=160?"Ideal length":"Ready to submit"}</em></div>}

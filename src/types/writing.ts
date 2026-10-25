@@ -1,0 +1,2 @@
+export interface StudentDraft { id:string; storyId:number; content:string; wordCount:number; selectedClues:string[]; selectedDecision:string; status:"draft"|"submitted"; updatedAt:string; submittedAt?:string; selfAssessment:{connection:boolean;description:boolean;ending:boolean}; }
+export interface ModelEssay { storyId:number; title:string; content:string; annotations:{type:"connection"|"action"|"emotion"|"turning-point"|"theme"; sentence:string; noteZh:string}[]; }
