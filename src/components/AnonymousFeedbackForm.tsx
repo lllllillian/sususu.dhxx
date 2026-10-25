@@ -1,12 +1,9 @@
 import { Send } from "lucide-react";
 import { useState } from "react";
-import { useLocalStorage } from "../hooks/useLocalStorage";
-import type { AnonymousComment } from "../types/gallery";
 
 const countWords = (value: string) => value.trim() ? value.trim().split(/\s+/).length : 0;
 
-export default function AnonymousFeedbackForm({ submissionId, enabled, onGoToWriting }: { submissionId: string; enabled: boolean; onGoToWriting: () => void }) {
-  const [comments, setComments] = useLocalStorage<AnonymousComment[]>("storyforge-comments", []);
+export default function AnonymousFeedbackForm({ enabled, onGoToWriting, onSubmit }: { enabled: boolean; onGoToWriting: () => void; onSubmit: (praise: string, suggestion: string) => void }) {
   const [praise, setPraise] = useState("");
   const [suggestion, setSuggestion] = useState("");
   const [error, setError] = useState("");
@@ -16,7 +13,7 @@ export default function AnonymousFeedbackForm({ submissionId, enabled, onGoToWri
 
   const submit = () => {
     if (countWords(praise) < 10 || countWords(suggestion) < 10) { setError("Each response needs at least 10 English words."); return; }
-    setComments([...comments, { id: `comment-${Date.now()}`, submissionId, anonymousName: `Reader ${String(comments.length + 1).padStart(2, "0")}`, praise, suggestion, status: "visible", createdAt: new Date().toISOString() }]);
+    onSubmit(praise, suggestion);
     setPraise(""); setSuggestion(""); setError(""); setSuccess(true);
   };
 
