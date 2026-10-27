@@ -73,7 +73,8 @@ function normalizeStatus(data) {
   const status = data?.status || data?.data?.status || data?.task_status || "queued";
   const phase = typeof status === "string" ? status.toLowerCase() : String(status?.phase || status?.status || "queued").toLowerCase();
   const videoUrl = data?.content?.video_url || data?.content?.videoUrl || data?.data?.content?.video_url || data?.video_url || data?.output?.video_url;
-  return { phase, videoUrl, raw: data };
+  const error = data?.error?.message || data?.error || data?.message || data?.data?.error?.message || data?.data?.error;
+  return { phase, videoUrl, error: typeof error === "string" ? error : "", raw: data };
 }
 
 function normalizeResponseText(data) {
@@ -193,7 +194,7 @@ const server = http.createServer(async (request, response) => {
       const taskId = decodeURIComponent(match[1]);
       const result = await ark(`/contents/generations/tasks/${encodeURIComponent(taskId)}`, { method: "GET" });
       const normalized = normalizeStatus(result);
-      return json(response, 200, { task_id: taskId, status: normalized.phase, video_url: normalized.videoUrl || null });
+      return json(response, 200, { task_id: taskId, status: normalized.phase, video_url: normalized.videoUrl || null, error: normalized.error || null });
     }
     json(response, 404, { error: "Not found" });
   } catch (error) {

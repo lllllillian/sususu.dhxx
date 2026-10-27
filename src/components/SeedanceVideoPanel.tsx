@@ -20,7 +20,7 @@ export default function SeedanceVideoPanel({ defaultPrompt = "A cinematic storyb
         if (!response.ok) throw new Error(data.error || "查询视频状态失败。");
         setStatus(data.status || "running");
         if (data.video_url) { setVideoUrl(data.video_url); setStatus("succeeded"); }
-        if (["failed", "cancelled"].includes(data.status)) setError("视频生成失败，请修改提示词后重试。");
+        if (["failed", "cancelled"].includes(data.status)) setError(data.error || "视频生成失败，请稍后重试。");
       } catch (cause) { setStatus("failed"); setError(cause instanceof Error ? cause.message : "查询任务失败。"); }
     }, POLL_INTERVAL);
     return () => window.clearInterval(timer);
