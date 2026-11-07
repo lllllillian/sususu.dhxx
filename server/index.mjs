@@ -68,7 +68,8 @@ async function getCozeAccessToken() {
   if (!serviceIdentityConfigured && personalToken) return personalToken;
   if (!serviceIdentityConfigured) throw new Error("Coze 鉴权未配置：请设置 COZE_API_TOKEN，或设置 COZE_APP_ID、COZE_KEY_ID 和 COZE_PRIVATE_KEY。");
   if (cozeOAuthToken && Date.now() < cozeOAuthExpiresAt - 60_000) return cozeOAuthToken;
-  const result = await getJWTToken({ appId, keyid, privateKey, aud: cozeBaseUrl, baseURL: cozeBaseUrl, durationSeconds: 900 });
+  const audience = String(process.env.COZE_AUD || new URL(cozeBaseUrl).host).trim();
+  const result = await getJWTToken({ appId, keyid, privateKey, aud: audience, baseURL: cozeBaseUrl, durationSeconds: 900 });
   if (!result?.access_token) throw new Error("Coze 服务身份没有返回有效的访问令牌。");
   cozeOAuthToken = result.access_token;
   cozeOAuthExpiresAt = Date.now() + Number(result.expires_in || 900) * 1000;

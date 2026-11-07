@@ -27,6 +27,8 @@ services:
         sync: false
       - key: COZE_PRIVATE_KEY
         sync: false
+      - key: COZE_AUD
+        value: api.coze.cn
       - key: COZE_API_BASE_URL
         value: https://api.coze.cn
       - key: COZE_BOT_ID
