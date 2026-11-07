@@ -19,3 +19,9 @@ services:
         value: doubao-seed-1-6-vision-250815
       - key: ARK_WRITING_MODEL
         value: doubao-pro-32k-240615
+      - key: COZE_API_TOKEN
+        sync: false
+      - key: COZE_API_BASE_URL
+        value: https://api.coze.cn
+      - key: COZE_BOT_ID
+        sync: false

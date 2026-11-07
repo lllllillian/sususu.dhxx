@@ -6,6 +6,7 @@ const baseUrl = (process.env.ARK_API_BASE_URL || "https://ark.cn-beijing.volces.
 const model = process.env.ARK_VIDEO_MODEL || "doubao-seedance-2-5-260628";
 const ocrModel = process.env.ARK_OCR_MODEL || "doubao-seed-1-6-vision-250815";
 const writingModel = process.env.ARK_WRITING_MODEL || "doubao-pro-32k-240615";
+const cozeBaseUrl = (process.env.COZE_API_BASE_URL || "https://api.coze.cn").replace(/\/$/, "");
 const tasks = new Map();
 const fallbackWords = Object.fromEntries([
   ["disappointment", "失望"], ["anxiously", "焦虑地"], ["restore", "修复；恢复"], ["christmas", "圣诞节"], ["approached", "靠近；接近"], ["contents", "里面的东西；内容物"], ["revealing", "揭示；显露"], ["routine", "日常的；例行的"], ["inspection", "检查；视察"], ["maintenance", "维护；养护"], ["shoulder", "（道路）路肩"], ["spilled", "洒出；溢出"], ["wrapping", "包装纸；包装"], ["carefully", "小心地"], ["headquarters", "总部"], ["reports", "报告"], ["detailed", "详细的"], ["security", "安全；保密"], ["inquiries", "询问；查询"], ["crucial", "至关重要的"], ["grandchildren", "孙子女"], ["gifts", "礼物"]
@@ -43,6 +44,41 @@ async function ark(path, options = {}) {
     if (!(error instanceof TypeError) || process.platform !== "win32") throw error;
     return arkViaPowerShell(url, options.method || "GET", headers, options.body || "");
   }
+}
+
+async function coze(path, options = {}) {
+  if (!process.env.COZE_API_TOKEN) throw new Error("COZE_API_TOKEN 未配置，请在 Render 环境变量中设置。");
+  const response = await fetch(`${cozeBaseUrl}${path}`, {
+    ...options,
+    headers: { Authorization: `Bearer ${process.env.COZE_API_TOKEN}`, "Content-Type": "application/json", ...(options.headers || {}) },
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || (typeof data?.code === "number" && data.code !== 0)) throw new Error(data?.msg || data?.message || `Coze 请求失败（${response.status}）`);
+  return data;
+}
+
+const wait = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
+
+async function analyzeWithCoze(title, content) {
+  const botId = process.env.COZE_BOT_ID;
+  if (!botId) throw new Error("COZE_BOT_ID 未配置，请在 Render 环境变量中设置。");
+  const prompt = `请分析下面这篇高中英语读后续写原文。请严格按照你已设定的输出规则回答，只给出分析结论、判断标准和引导问题，不要续写全文。\n\n标题：${title}\n\n原文：\n${content}`;
+  const created = await coze("/v3/chat", { method: "POST", body: JSON.stringify({ bot_id: botId, user_id: "storyforge-student", stream: false, auto_save_history: true, additional_messages: [{ role: "user", content: prompt, content_type: "text" }] }) });
+  const chatId = created?.data?.id;
+  const conversationId = created?.data?.conversation_id;
+  if (!chatId || !conversationId) throw new Error("Coze 没有返回有效的对话编号，请确认智能体已经发布。");
+  let status = created?.data?.status || "created";
+  for (let attempt = 0; attempt < 40 && !["completed", "failed", "requires_action", "canceled"].includes(status); attempt += 1) {
+    await wait(1500);
+    const retrieved = await coze(`/v3/chat/retrieve?conversation_id=${encodeURIComponent(conversationId)}&chat_id=${encodeURIComponent(chatId)}`);
+    status = retrieved?.data?.status || status;
+    if (status === "failed") throw new Error(retrieved?.data?.last_error?.msg || "Coze 智能体运行失败。");
+  }
+  if (status !== "completed") throw new Error("Coze 智能体响应超时，请稍后重试。");
+  const messages = await coze(`/v3/chat/message/list?conversation_id=${encodeURIComponent(conversationId)}&chat_id=${encodeURIComponent(chatId)}`);
+  const answer = (messages?.data || []).filter(item => item.role === "assistant" && item.type === "answer").map(item => item.content).filter(Boolean).join("\n\n");
+  if (!answer) throw new Error("Coze 智能体没有返回可展示的分析结果。");
+  return answer;
 }
 
 function arkViaPowerShell(url, method, headers, body) {
@@ -127,6 +163,14 @@ const server = http.createServer(async (request, response) => {
   try {
     if (request.method === "OPTIONS") return json(response, 204, {});
     if (request.method === "GET" && request.url === "/health") return json(response, 200, { status: "ok", service: "storyforge-api" });
+    if (request.method === "POST" && request.url === "/api/reading/analyze") {
+      const body = await readBody(request);
+      const title = String(body.title || "Untitled passage").trim();
+      const content = String(body.content || "").trim();
+      if (content.length < 80) return json(response, 400, { error: "语篇内容太短，暂时无法分析。" });
+      const analysis = await analyzeWithCoze(title, content);
+      return json(response, 200, { analysis });
+    }
     if (request.method === "POST" && request.url === "/api/writing/ocr") {
       const body = await readBody(request);
       const image = String(body.image || "");
