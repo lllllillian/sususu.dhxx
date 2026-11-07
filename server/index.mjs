@@ -110,7 +110,7 @@ async function analyzeWithCoze(title, content) {
   let status = created?.data?.status || "created";
   for (let attempt = 0; attempt < 40 && !["completed", "failed", "requires_action", "canceled"].includes(status); attempt += 1) {
     await wait(1500);
-    const retrieved = await coze(`/v3/chat/retrieve?conversation_id=${encodeURIComponent(conversationId)}&chat_id=${encodeURIComponent(chatId)}`);
+    const retrieved = await coze(`/v3/chat/retrieve?conversation_id=${encodeURIComponent(conversationId)}&chat_id=${encodeURIComponent(chatId)}`, { method: "POST" });
     status = retrieved?.data?.status || status;
     if (status === "failed") throw new Error(retrieved?.data?.last_error?.msg || "Coze 智能体运行失败。");
   }
