@@ -47,10 +47,11 @@ async function ark(path, options = {}) {
 }
 
 async function coze(path, options = {}) {
-  if (!process.env.COZE_API_TOKEN) throw new Error("COZE_API_TOKEN 未配置，请在 Render 环境变量中设置。");
+  const token = String(process.env.COZE_API_TOKEN || "").trim().replace(/^['"]|['"]$/g, "").replace(/^Bearer\s+/i, "").trim();
+  if (!token) throw new Error("COZE_API_TOKEN 未配置，请在 Render 环境变量中设置。");
   const response = await fetch(`${cozeBaseUrl}${path}`, {
     ...options,
-    headers: { Authorization: `Bearer ${process.env.COZE_API_TOKEN}`, "Content-Type": "application/json", ...(options.headers || {}) },
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", ...(options.headers || {}) },
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok || (typeof data?.code === "number" && data.code !== 0)) throw new Error(data?.msg || data?.message || `Coze 请求失败（${response.status}）`);
