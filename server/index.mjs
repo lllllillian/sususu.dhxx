@@ -7,6 +7,11 @@ const model = process.env.ARK_VIDEO_MODEL || "doubao-seedance-2-5-260628";
 const ocrModel = process.env.ARK_OCR_MODEL || "doubao-seed-1-6-vision-250815";
 const writingModel = process.env.ARK_WRITING_MODEL || "doubao-pro-32k-240615";
 const cozeBaseUrl = (process.env.COZE_API_BASE_URL || "https://api.coze.cn").replace(/\/$/, "");
+const normalizeCozeToken = value => String(value || "")
+  .replace(/^\s*COZE_API_TOKEN\s*=\s*/i, "")
+  .replace(/^\s*Bearer\s+/i, "")
+  .replace(/[\s\u200B-\u200D\u2060\uFEFF]/g, "")
+  .replace(/^['"]|['"]$/g, "");
 const tasks = new Map();
 const fallbackWords = Object.fromEntries([
   ["disappointment", "失望"], ["anxiously", "焦虑地"], ["restore", "修复；恢复"], ["christmas", "圣诞节"], ["approached", "靠近；接近"], ["contents", "里面的东西；内容物"], ["revealing", "揭示；显露"], ["routine", "日常的；例行的"], ["inspection", "检查；视察"], ["maintenance", "维护；养护"], ["shoulder", "（道路）路肩"], ["spilled", "洒出；溢出"], ["wrapping", "包装纸；包装"], ["carefully", "小心地"], ["headquarters", "总部"], ["reports", "报告"], ["detailed", "详细的"], ["security", "安全；保密"], ["inquiries", "询问；查询"], ["crucial", "至关重要的"], ["grandchildren", "孙子女"], ["gifts", "礼物"]
@@ -47,7 +52,7 @@ async function ark(path, options = {}) {
 }
 
 async function coze(path, options = {}) {
-  const token = String(process.env.COZE_API_TOKEN || "").trim().replace(/^['"]|['"]$/g, "").replace(/^Bearer\s+/i, "").trim();
+  const token = normalizeCozeToken(process.env.COZE_API_TOKEN);
   if (!token) throw new Error("COZE_API_TOKEN 未配置，请在 Render 环境变量中设置。");
   const response = await fetch(`${cozeBaseUrl}${path}`, {
     ...options,
@@ -163,7 +168,10 @@ function localExpressionExtraction(content) {
 const server = http.createServer(async (request, response) => {
   try {
     if (request.method === "OPTIONS") return json(response, 204, {});
-    if (request.method === "GET" && request.url === "/health") return json(response, 200, { status: "ok", service: "storyforge-api" });
+    if (request.method === "GET" && request.url === "/health") {
+      const cozeToken = normalizeCozeToken(process.env.COZE_API_TOKEN);
+      return json(response, 200, { status: "ok", service: "storyforge-api", coze: { configured: Boolean(cozeToken), startsWithPat: cozeToken.startsWith("pat_"), tokenLength: cozeToken.length, botConfigured: Boolean(process.env.COZE_BOT_ID), baseUrl: cozeBaseUrl } });
+    }
     if (request.method === "POST" && request.url === "/api/reading/analyze") {
       const body = await readBody(request);
       const title = String(body.title || "Untitled passage").trim();
