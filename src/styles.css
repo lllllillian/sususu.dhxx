@@ -32,6 +32,12 @@
 .library-card strong{display:inline-flex;align-items:center;gap:8px;margin-top:22px;padding:9px 12px;border:2px solid;border-color:#fff #40558f #40558f #fff;background:#78d9ce;font-size:.82rem}
 @media(max-width:760px){.library-cards,.library-cards--single{grid-template-columns:1fr}.library-card{min-height:340px}}
 .clue-guide{margin:28px 0 24px;border:1px solid #1f251f;background:#f4f5bf}
+.reading-openings{margin:28px 0;padding:20px;border:1px solid #1f251f;background:#fff8df;box-shadow:4px 4px 0 #f1a9ca}
+.reading-openings>span{font-size:.65rem;font-weight:800;letter-spacing:.14em;color:#5269b1}
+.reading-openings h4{margin:7px 0 14px;font:600 1.15rem "Playfair Display",serif}
+.reading-openings p{display:grid;grid-template-columns:88px 1fr;gap:12px;margin:0;padding:12px 0;border-top:1px dashed #a9a9de;font:15px/1.55 Georgia,serif}
+.reading-openings p:last-child{padding-bottom:0}
+.reading-openings b{font:800 11px "DM Sans",sans-serif;text-transform:uppercase;color:#6d6a8e}
 .clue-guide__intro{display:grid;gap:5px;padding:18px 20px;border-bottom:1px solid #1f251f}
 .clue-guide__intro span{font-size:.65rem;font-weight:700;letter-spacing:.16em}
 .clue-guide__intro strong{font:600 1.25rem "Playfair Display",serif}
