@@ -32,4 +32,4 @@ services:
       - key: COZE_API_BASE_URL
         value: https://api.coze.cn
       - key: COZE_BOT_ID
-        sync: false
+        value: "7702454619649884160"

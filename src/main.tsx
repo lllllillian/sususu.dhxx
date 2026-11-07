@@ -1,11 +1,12 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
+import CozeWebChat from "./components/CozeWebChat";
 import "./styles.css";
 import "./game.css";
 import "./story-tools.css";
 import "./learning-community.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
-  <React.StrictMode><App /></React.StrictMode>,
+  <React.StrictMode><App /><CozeWebChat /></React.StrictMode>,
 );

@@ -205,6 +205,15 @@ const server = http.createServer(async (request, response) => {
       const serviceIdentityConfigured = Boolean(process.env.COZE_APP_ID && process.env.COZE_KEY_ID && process.env.COZE_PRIVATE_KEY);
       return json(response, 200, { status: "ok", service: "storyforge-api", coze: { configured: Boolean(cozeToken || serviceIdentityConfigured), authMode: serviceIdentityConfigured ? "service-identity" : cozeToken ? "pat" : "missing", botConfigured: Boolean(process.env.COZE_BOT_ID), baseUrl: cozeBaseUrl, credentials: { appIdLength: cozeAppId.length, keyIdLength: cozeKeyId.length, privateKeyLength: cozePrivateKey.length, privateKeyPem: /^-----BEGIN (?:RSA )?PRIVATE KEY-----/.test(cozePrivateKey), audience: String(process.env.COZE_AUD || new URL(cozeBaseUrl).host).trim() } } });
     }
+    if (request.method === "GET" && request.url === "/api/coze/web-token") {
+      const appId = String(process.env.COZE_APP_ID || "").trim();
+      const keyId = String(process.env.COZE_KEY_ID || "").trim();
+      const privateKey = normalizePrivateKey(process.env.COZE_PRIVATE_KEY);
+      if (!appId || !keyId || !privateKey) {
+        return json(response, 503, { error: "悬浮智能体需要配置 Coze 服务身份，不能使用会暴露在浏览器中的永久 PAT。" });
+      }
+      return json(response, 200, { token: await getCozeAccessToken() });
+    }
     if (request.method === "POST" && request.url === "/api/reading/analyze") {
       const body = await readBody(request);
       const title = String(body.title || "Untitled passage").trim();
