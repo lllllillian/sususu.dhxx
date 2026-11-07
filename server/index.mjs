@@ -69,8 +69,6 @@ async function getCozeAccessToken() {
   if (!serviceIdentityConfigured) throw new Error("Coze 鉴权未配置：请设置 COZE_API_TOKEN，或设置 COZE_APP_ID、COZE_KEY_ID 和 COZE_PRIVATE_KEY。");
   if (cozeOAuthToken && Date.now() < cozeOAuthExpiresAt - 60_000) return cozeOAuthToken;
   const audience = String(process.env.COZE_AUD || new URL(cozeBaseUrl).host).trim();
-  const botId = String(process.env.COZE_BOT_ID || "").trim();
-  if (!botId) throw new Error("COZE_BOT_ID 未配置，请在 Render 环境变量中设置。");
   let result;
   try {
     result = await getJWTToken({
@@ -80,10 +78,6 @@ async function getCozeAccessToken() {
       aud: audience,
       baseURL: cozeBaseUrl,
       durationSeconds: 900,
-      scope: {
-        account_permission: { permission_list: ["chat"] },
-        attribute_constraint: { connector_bot_chat_attribute: { bot_id_list: [botId] } },
-      },
     });
   } catch (error) {
     throw new Error(`Coze JWT 换取访问令牌失败：${error instanceof Error ? error.message : "未知错误"}`);
