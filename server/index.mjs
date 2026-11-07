@@ -216,7 +216,7 @@ const server = http.createServer(async (request, response) => {
       const cozeKeyId = String(process.env.COZE_KEY_ID || "").trim();
       const cozePrivateKey = normalizePrivateKey(process.env.COZE_PRIVATE_KEY);
       const serviceIdentityConfigured = Boolean(process.env.COZE_APP_ID && process.env.COZE_KEY_ID && process.env.COZE_PRIVATE_KEY);
-      return json(response, 200, { status: "ok", service: "storyforge-api", coze: { configured: Boolean(cozeToken || serviceIdentityConfigured), authMode: serviceIdentityConfigured ? "service-identity" : cozeToken ? "pat" : "missing", botConfigured: Boolean(process.env.COZE_BOT_ID), baseUrl: cozeBaseUrl, credentials: { appIdLength: cozeAppId.length, keyIdLength: cozeKeyId.length, privateKeyLength: cozePrivateKey.length, privateKeyPem: /^-----BEGIN (?:RSA )?PRIVATE KEY-----/.test(cozePrivateKey), audience: String(process.env.COZE_AUD || new URL(cozeBaseUrl).host).trim() } } });
+      return json(response, 200, { status: "ok", service: "storyforge-api", release: process.env.RENDER_GIT_COMMIT || "local", coze: { configured: Boolean(cozeToken || serviceIdentityConfigured), authMode: serviceIdentityConfigured ? "service-identity" : cozeToken ? "pat" : "missing", botConfigured: Boolean(process.env.COZE_BOT_ID), baseUrl: cozeBaseUrl, credentials: { appIdLength: cozeAppId.length, keyIdLength: cozeKeyId.length, privateKeyLength: cozePrivateKey.length, privateKeyPem: /^-----BEGIN (?:RSA )?PRIVATE KEY-----/.test(cozePrivateKey), audience: String(process.env.COZE_AUD || new URL(cozeBaseUrl).host).trim() } } });
     }
     if (request.method === "GET" && request.url === "/api/coze/web-token") {
       const appId = String(process.env.COZE_APP_ID || "").trim();
