@@ -21,6 +21,12 @@ services:
         value: doubao-pro-32k-240615
       - key: COZE_API_TOKEN
         sync: false
+      - key: COZE_APP_ID
+        sync: false
+      - key: COZE_KEY_ID
+        sync: false
+      - key: COZE_PRIVATE_KEY
+        sync: false
       - key: COZE_API_BASE_URL
         value: https://api.coze.cn
       - key: COZE_BOT_ID

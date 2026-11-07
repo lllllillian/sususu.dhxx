@@ -1,5 +1,6 @@
 import http from "node:http";
 import { spawn } from "node:child_process";
+import { getJWTToken } from "@coze/api";
 
 const port = Number(process.env.PORT || process.env.API_PORT || 3001);
 const baseUrl = (process.env.ARK_API_BASE_URL || "https://ark.cn-beijing.volces.com/api/v3").replace(/\/$/, "");
@@ -12,6 +13,13 @@ const normalizeCozeToken = value => String(value || "")
   .replace(/^\s*Bearer\s+/i, "")
   .replace(/[\s\u200B-\u200D\u2060\uFEFF]/g, "")
   .replace(/^['"]|['"]$/g, "");
+const normalizePrivateKey = value => String(value || "")
+  .replace(/^\s*COZE_PRIVATE_KEY\s*=\s*/i, "")
+  .replace(/^['"]|['"]$/g, "")
+  .replace(/\\n/g, "\n")
+  .trim();
+let cozeOAuthToken = "";
+let cozeOAuthExpiresAt = 0;
 const tasks = new Map();
 const fallbackWords = Object.fromEntries([
   ["disappointment", "失望"], ["anxiously", "焦虑地"], ["restore", "修复；恢复"], ["christmas", "圣诞节"], ["approached", "靠近；接近"], ["contents", "里面的东西；内容物"], ["revealing", "揭示；显露"], ["routine", "日常的；例行的"], ["inspection", "检查；视察"], ["maintenance", "维护；养护"], ["shoulder", "（道路）路肩"], ["spilled", "洒出；溢出"], ["wrapping", "包装纸；包装"], ["carefully", "小心地"], ["headquarters", "总部"], ["reports", "报告"], ["detailed", "详细的"], ["security", "安全；保密"], ["inquiries", "询问；查询"], ["crucial", "至关重要的"], ["grandchildren", "孙子女"], ["gifts", "礼物"]
@@ -51,9 +59,24 @@ async function ark(path, options = {}) {
   }
 }
 
+async function getCozeAccessToken() {
+  const personalToken = normalizeCozeToken(process.env.COZE_API_TOKEN);
+  const appId = String(process.env.COZE_APP_ID || "").trim();
+  const keyid = String(process.env.COZE_KEY_ID || "").trim();
+  const privateKey = normalizePrivateKey(process.env.COZE_PRIVATE_KEY);
+  const serviceIdentityConfigured = Boolean(appId && keyid && privateKey);
+  if (!serviceIdentityConfigured && personalToken) return personalToken;
+  if (!serviceIdentityConfigured) throw new Error("Coze 鉴权未配置：请设置 COZE_API_TOKEN，或设置 COZE_APP_ID、COZE_KEY_ID 和 COZE_PRIVATE_KEY。");
+  if (cozeOAuthToken && Date.now() < cozeOAuthExpiresAt - 60_000) return cozeOAuthToken;
+  const result = await getJWTToken({ appId, keyid, privateKey, aud: cozeBaseUrl, baseURL: cozeBaseUrl, durationSeconds: 900 });
+  if (!result?.access_token) throw new Error("Coze 服务身份没有返回有效的访问令牌。");
+  cozeOAuthToken = result.access_token;
+  cozeOAuthExpiresAt = Date.now() + Number(result.expires_in || 900) * 1000;
+  return cozeOAuthToken;
+}
+
 async function coze(path, options = {}) {
-  const token = normalizeCozeToken(process.env.COZE_API_TOKEN);
-  if (!token) throw new Error("COZE_API_TOKEN 未配置，请在 Render 环境变量中设置。");
+  const token = await getCozeAccessToken();
   const response = await fetch(`${cozeBaseUrl}${path}`, {
     ...options,
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", ...(options.headers || {}) },
@@ -170,7 +193,8 @@ const server = http.createServer(async (request, response) => {
     if (request.method === "OPTIONS") return json(response, 204, {});
     if (request.method === "GET" && request.url === "/health") {
       const cozeToken = normalizeCozeToken(process.env.COZE_API_TOKEN);
-      return json(response, 200, { status: "ok", service: "storyforge-api", coze: { configured: Boolean(cozeToken), startsWithPat: cozeToken.startsWith("pat_"), tokenLength: cozeToken.length, botConfigured: Boolean(process.env.COZE_BOT_ID), baseUrl: cozeBaseUrl } });
+      const serviceIdentityConfigured = Boolean(process.env.COZE_APP_ID && process.env.COZE_KEY_ID && process.env.COZE_PRIVATE_KEY);
+      return json(response, 200, { status: "ok", service: "storyforge-api", coze: { configured: Boolean(cozeToken || serviceIdentityConfigured), authMode: cozeToken ? "pat" : serviceIdentityConfigured ? "service-identity" : "missing", botConfigured: Boolean(process.env.COZE_BOT_ID), baseUrl: cozeBaseUrl } });
     }
     if (request.method === "POST" && request.url === "/api/reading/analyze") {
       const body = await readBody(request);
