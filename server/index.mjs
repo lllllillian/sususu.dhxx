@@ -1,6 +1,6 @@
 import http from "node:http";
 import { spawn } from "node:child_process";
-import { getJWTToken } from "@coze/api";
+import { ChatStatus, CozeAPI, getJWTToken } from "@coze/api";
 
 const port = Number(process.env.PORT || process.env.API_PORT || 3001);
 const baseUrl = (process.env.ARK_API_BASE_URL || "https://ark.cn-beijing.volces.com/api/v3").replace(/\/$/, "");
@@ -103,20 +103,15 @@ async function analyzeWithCoze(title, content) {
   const botId = process.env.COZE_BOT_ID;
   if (!botId) throw new Error("COZE_BOT_ID 未配置，请在 Render 环境变量中设置。");
   const prompt = `请分析下面这篇高中英语读后续写原文。请严格按照你已设定的输出规则回答，只给出分析结论、判断标准和引导问题，不要续写全文。\n\n标题：${title}\n\n原文：\n${content}`;
-  const created = await coze("/v3/chat", { method: "POST", body: JSON.stringify({ bot_id: botId, user_id: "storyforge-student", stream: false, auto_save_history: true, additional_messages: [{ role: "user", content: prompt, content_type: "text" }] }) });
-  const chatId = created?.data?.id;
-  const conversationId = created?.data?.conversation_id;
-  if (!chatId || !conversationId) throw new Error("Coze 没有返回有效的对话编号，请确认智能体已经发布。");
-  let status = created?.data?.status || "created";
-  for (let attempt = 0; attempt < 40 && !["completed", "failed", "requires_action", "canceled"].includes(status); attempt += 1) {
-    await wait(1500);
-    const retrieved = await coze(`/v3/chat/retrieve?conversation_id=${encodeURIComponent(conversationId)}&chat_id=${encodeURIComponent(chatId)}`, { method: "POST" });
-    status = retrieved?.data?.status || status;
-    if (status === "failed") throw new Error(retrieved?.data?.last_error?.msg || "Coze 智能体运行失败。");
+  const client = new CozeAPI({ baseURL: cozeBaseUrl, token: getCozeAccessToken });
+  let result;
+  try {
+    result = await client.chat.createAndPoll({ bot_id: botId, user_id: "storyforge-student", auto_save_history: true, additional_messages: [{ role: "user", content: prompt, content_type: "text" }] }, { timeout: 90_000 });
+  } catch (error) {
+    throw new Error(`Coze 官方 SDK 对话失败：${error instanceof Error ? error.message : "未知错误"}`);
   }
-  if (status !== "completed") throw new Error("Coze 智能体响应超时，请稍后重试。");
-  const messages = await coze(`/v3/chat/message/list?conversation_id=${encodeURIComponent(conversationId)}&chat_id=${encodeURIComponent(chatId)}`);
-  const answer = (messages?.data || []).filter(item => item.role === "assistant" && item.type === "answer").map(item => item.content).filter(Boolean).join("\n\n");
+  if (result?.chat?.status !== ChatStatus.COMPLETED) throw new Error(result?.chat?.last_error?.msg || "Coze 智能体响应未完成，请稍后重试。");
+  const answer = (result?.messages || []).filter(item => item.role === "assistant" && item.type === "answer").map(item => item.content).filter(Boolean).join("\n\n");
   if (!answer) throw new Error("Coze 智能体没有返回可展示的分析结果。");
   return answer;
 }
