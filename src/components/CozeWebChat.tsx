@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { apiUrl } from "../lib/api";
 
-const sdkUrl = "https://lf-cdn.coze.cn/obj/unpkg/flow-platform/chat-app-sdk/1.2.0-beta.19/libs/cn/index.js";
+const sdkUrl = "https://lf-cdn.coze.cn/obj/unpkg/flow-platform/chat-app-sdk/1.2.0-beta.20/libs/cn/index.js";
 const botId = "7702454619649884160";
 
 type CozeWebChatClient = {
