@@ -123,6 +123,19 @@ async function analyzeWithCoze(title, content) {
   return answer;
 }
 
+async function chatWithCoze(messages) {
+  const botId = process.env.COZE_BOT_ID;
+  if (!botId) throw new Error("COZE_BOT_ID 未配置，请在 Render 环境变量中设置。");
+  const normalizedMessages = messages.filter(item => item && (item.role === "user" || item.role === "assistant") && typeof item.content === "string").slice(-10).map(item => ({ role: item.role, content: item.content.trim().slice(0, 4000), content_type: "text" })).filter(item => item.content);
+  if (!normalizedMessages.length || normalizedMessages.at(-1)?.role !== "user") throw new Error("请输入要咨询的问题。");
+  const client = new CozeAPI({ baseURL: cozeBaseUrl, token: await getCozeAccessToken() });
+  const result = await client.chat.createAndPoll({ bot_id: botId, user_id: "storyforge-web-chat", auto_save_history: true, additional_messages: normalizedMessages }, { timeout: 90_000 });
+  if (result?.chat?.status !== ChatStatus.COMPLETED) throw new Error(result?.chat?.last_error?.msg || "智能体响应未完成，请稍后重试。");
+  const answer = (result?.messages || []).filter(item => item.role === "assistant" && item.type === "answer").map(item => item.content).filter(Boolean).join("\n\n");
+  if (!answer) throw new Error("智能体没有返回可展示的回答。");
+  return answer;
+}
+
 function arkViaPowerShell(url, method, headers, body) {
   const script = "$request=[Console]::In.ReadToEnd()|ConvertFrom-Json;$headers=@{};$request.headers.psobject.Properties|ForEach-Object{$headers[$_.Name]=$_.Value};try{$response=Invoke-WebRequest -Uri $request.url -Method $request.method -Headers $headers -ContentType 'application/json' -Body $request.body -TimeoutSec 90 -SkipHttpErrorCheck;[Console]::Out.Write(($response.StatusCode.ToString()+[Environment]::NewLine+$response.Content))}catch{[Console]::Error.Write($_.Exception.Message);exit 1}";
   return new Promise((resolve, reject) => {
@@ -220,6 +233,11 @@ const server = http.createServer(async (request, response) => {
         return json(response, 503, { error: "悬浮智能体需要配置 Coze 服务身份，不能使用会暴露在浏览器中的永久 PAT。" });
       }
       return json(response, 200, { token: await getCozeAccessToken() });
+    }
+    if (request.method === "POST" && request.url === "/api/coze/chat") {
+      const body = await readBody(request);
+      const messages = Array.isArray(body.messages) ? body.messages : [];
+      return json(response, 200, { answer: await chatWithCoze(messages) });
     }
     if (request.method === "POST" && request.url === "/api/reading/analyze") {
       const body = await readBody(request);
