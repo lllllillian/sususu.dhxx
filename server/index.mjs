@@ -128,10 +128,20 @@ async function chatWithCoze(messages) {
   if (!botId) throw new Error("COZE_BOT_ID 未配置，请在 Render 环境变量中设置。");
   const normalizedMessages = messages.filter(item => item && (item.role === "user" || item.role === "assistant") && typeof item.content === "string").slice(-10).map(item => ({ role: item.role, content: item.content.trim().slice(0, 4000), content_type: "text" })).filter(item => item.content);
   if (!normalizedMessages.length || normalizedMessages.at(-1)?.role !== "user") throw new Error("请输入要咨询的问题。");
-  const client = new CozeAPI({ baseURL: cozeBaseUrl, token: await getCozeAccessToken() });
-  const result = await client.chat.createAndPoll({ bot_id: botId, user_id: "storyforge-web-chat", auto_save_history: true, additional_messages: normalizedMessages }, { timeout: 90_000 });
-  if (result?.chat?.status !== ChatStatus.COMPLETED) throw new Error(result?.chat?.last_error?.msg || "智能体响应未完成，请稍后重试。");
-  const answer = (result?.messages || []).filter(item => item.role === "assistant" && item.type === "answer").map(item => item.content).filter(Boolean).join("\n\n");
+  const created = await coze("/v3/chat", { method: "POST", body: JSON.stringify({ bot_id: botId, user_id: "storyforge-web-chat", stream: false, auto_save_history: true, additional_messages: normalizedMessages }) });
+  const chatId = created?.data?.id;
+  const conversationId = created?.data?.conversation_id;
+  if (!chatId || !conversationId) throw new Error("Coze 没有返回有效的对话编号，请确认智能体已经发布。");
+  let status = created?.data?.status || "created";
+  for (let attempt = 0; attempt < 40 && !["completed", "failed", "requires_action", "canceled"].includes(status); attempt += 1) {
+    await wait(1500);
+    const retrieved = await coze(`/v3/chat/retrieve?conversation_id=${encodeURIComponent(conversationId)}&chat_id=${encodeURIComponent(chatId)}`, { method: "POST" });
+    status = retrieved?.data?.status || status;
+    if (status === "failed") throw new Error(retrieved?.data?.last_error?.msg || "Coze 智能体运行失败。");
+  }
+  if (status !== "completed") throw new Error("Coze 智能体响应超时，请稍后重试。");
+  const result = await coze(`/v3/chat/message/list?conversation_id=${encodeURIComponent(conversationId)}&chat_id=${encodeURIComponent(chatId)}`);
+  const answer = (result?.data || []).filter(item => item.role === "assistant" && item.type === "answer").map(item => item.content).filter(Boolean).join("\n\n");
   if (!answer) throw new Error("智能体没有返回可展示的回答。");
   return answer;
 }
