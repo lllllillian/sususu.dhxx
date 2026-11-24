@@ -1,0 +1,34 @@
+.seedance-cost-note {
+  margin: 10px 0 0;
+  padding: 9px 11px;
+  border-left: 3px solid #a45243;
+  background: #fff4d8;
+  font-size: .78rem;
+}
+
+.seedance-player { margin-top: 16px; }
+.seedance-player > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 11px;
+  background: #1f251f;
+  color: #fff;
+}
+.seedance-player > div span { font-size: .78rem; }
+.seedance-player .seedance-video { margin-top: 0; }
+.seedance-player nav {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-top: 8px;
+}
+.seedance-player nav button {
+  padding: 8px;
+  border: 1px solid #1f251f;
+  background: #fff;
+}
+.seedance-player nav button.active {
+  background: #1f251f;
+  color: #fff;
+}

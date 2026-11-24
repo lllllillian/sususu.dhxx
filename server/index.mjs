@@ -309,7 +309,9 @@ const server = http.createServer(async (request, response) => {
       const body = await readBody(request);
       const prompt = String(body.prompt || "").trim();
       if (!prompt) return json(response, 400, { error: "请输入视频提示词。" });
-      const result = await ark("/contents/generations/tasks", { method: "POST", body: JSON.stringify({ model, content: [{ type: "text", text: prompt }] }) });
+      const duration = Number(body.duration || 10);
+      if (![5, 10].includes(duration)) return json(response, 400, { error: "视频时长仅支持5秒或10秒。" });
+      const result = await ark("/contents/generations/tasks", { method: "POST", body: JSON.stringify({ model, content: [{ type: "text", text: prompt }], duration }) });
       const taskId = normalizeTask(result);
       if (!taskId) throw new Error("火山方舟没有返回 task_id。");
       tasks.set(taskId, { createdAt: Date.now() });
