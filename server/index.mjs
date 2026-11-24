@@ -1,6 +1,6 @@
 import http from "node:http";
 import { spawn } from "node:child_process";
-import { ChatStatus, CozeAPI, getJWTToken } from "@coze/api";
+import { getJWTToken } from "@coze/api";
 
 const port = Number(process.env.PORT || process.env.API_PORT || 3001);
 const baseUrl = (process.env.ARK_API_BASE_URL || "https://ark.cn-beijing.volces.com/api/v3").replace(/\/$/, "");
@@ -108,20 +108,8 @@ async function coze(path, options = {}) {
 }
 
 async function analyzeWithCoze(title, content) {
-  const botId = process.env.COZE_BOT_ID;
-  if (!botId) throw new Error("COZE_BOT_ID 未配置，请在 Render 环境变量中设置。");
   const prompt = `请分析下面这篇高中英语读后续写原文。请严格按照你已设定的输出规则回答，只给出分析结论、判断标准和引导问题，不要续写全文。\n\n标题：${title}\n\n原文：\n${content}`;
-  const client = new CozeAPI({ baseURL: cozeBaseUrl, token: await getCozeAccessToken() });
-  let result;
-  try {
-    result = await client.chat.createAndPoll({ bot_id: botId, user_id: "storyforge-student", auto_save_history: true, additional_messages: [{ role: "user", content: prompt, content_type: "text" }] }, { timeout: 90_000 });
-  } catch (error) {
-    throw new Error(`Coze 官方 SDK 对话失败：${error instanceof Error ? error.message : "未知错误"}`);
-  }
-  if (result?.chat?.status !== ChatStatus.COMPLETED) throw new Error(result?.chat?.last_error?.msg || "Coze 智能体响应未完成，请稍后重试。");
-  const answer = (result?.messages || []).filter(item => item.role === "assistant" && item.type === "answer").map(item => item.content).filter(Boolean).join("\n\n");
-  if (!answer) throw new Error("Coze 智能体没有返回可展示的分析结果。");
-  return answer;
+  return chatWithCoze([{ role: "user", content: prompt }]);
 }
 
 async function chatWithCoze(messages) {
