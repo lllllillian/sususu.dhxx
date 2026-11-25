@@ -11,7 +11,7 @@ import { apiUrl } from "../lib/api";
 type StorySummary = { id: number; version: number; title: string; label: string; image: string; accent: string };
 
 export default function IndependentWriting({ story, writingOpenings, onDraftChange, onGoToGallery }: { story: StorySummary; writingOpenings?: [string, string]; onDraftChange?: (draft: StudentDraft) => void; onGoToGallery: () => void }) {
-  const empty: StudentDraft = { id: `draft-v${story.version}-${story.id}`, storyId: story.id, content: "", wordCount: 0, selectedClues: [], selectedDecision: "", status: "draft", updatedAt: new Date().toISOString(), selfAssessment: { connection: false, description: false, ending: false } };
+  const empty: StudentDraft = { id: `draft-v${story.version}-${story.id}`, storyId: story.id, content: "", wordCount: 0, selectedClues: [], selectedDecision: "", status: "draft", updatedAt: new Date().toISOString(), selfAssessment: { connection: false, openings: false, description: false, language: false, theme: false, strongestPart: "", improvement: "", feedbackDecision: "" } };
   const [draft, setDraft] = useLocalStorage<StudentDraft>(`storyforge-draft-v${story.version}-${story.id}`, empty);
   const [message, setMessage] = useState("");
   const [showFeedback, setShowFeedback] = useState(false);
@@ -23,7 +23,7 @@ export default function IndependentWriting({ story, writingOpenings, onDraftChan
   const uploadInput = useRef<HTMLInputElement>(null);
   useEffect(() => { onDraftChange?.(draft); }, [draft, onDraftChange]);
   const update = (content: string) => setDraft({ ...draft, content, wordCount: countWords(content), status: "draft", updatedAt: new Date().toISOString() });
-  const submit = () => { const wordCount = countWords(draft.content); if (wordCount < 120) return setMessage("Write at least 120 English words before submitting."); if (!Object.values(draft.selfAssessment).every(Boolean)) return setMessage("Complete your student self-assessment first."); setDraft({ ...draft, wordCount, status: "submitted", submittedAt: new Date().toISOString(), updatedAt: new Date().toISOString() }); setMessage("Your continuation has been submitted successfully."); };
+  const submit = () => { const wordCount = countWords(draft.content); const assessment = draft.selfAssessment; if (wordCount < 120) return setMessage("Write at least 120 English words before submitting."); if (![assessment.connection, assessment.openings, assessment.description, assessment.language, assessment.theme].every(Boolean)) return setMessage("Please complete all five self-checks before submitting. · 请完成五项自查。"); if (!assessment.strongestPart?.trim() || !assessment.improvement?.trim()) return setMessage("Please complete both reflection prompts. · 请写下作品优点和待改进之处。"); setDraft({ ...draft, wordCount, status: "submitted", submittedAt: new Date().toISOString(), updatedAt: new Date().toISOString() }); setMessage("Your continuation has been submitted successfully."); };
   const preparePhoto = async (file?: File) => {
     if (!file) return;
     setOcrError(""); setRecognizedText("");
